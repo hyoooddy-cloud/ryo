@@ -2,8 +2,15 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>아이돌 레일 5블럭: 레전드 vs 아이콘</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>아이돌 레일 5블럭 | 레전드 vs 아이콘</title>
+
+<!-- 공유용 메타 (배포 후 og:image에 실제 이미지 URL로 교체 추천) -->
+<meta property="og:title" content="아이돌 레일 5블럭 게임" />
+<meta property="og:description" content="3번째 블럭이 레전드(7년↑)인지 아이콘(7년↓)인지 맞혀라!" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://example.com/og-thumbnail.png" />
+
 <style>
   :root{
     --bg:#0b0e17;
@@ -20,17 +27,51 @@
     --shift: calc(var(--slotH) + var(--gap));
   }
   *{box-sizing:border-box}
+  html,body{height:100%}
   body{
     margin:0; background:var(--bg); color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",system-ui,sans-serif;
-    display:flex; justify-content:center; align-items:center; min-height:100vh;
+    display:flex; justify-content:center; align-items:center;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   }
   .app{ width:100%; max-width:520px; padding:18px; }
 
+  /* 로딩(페이지 열자마자) */
+  .boot{
+    position:fixed; inset:0; z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(1200px 500px at 50% 0%, rgba(47,211,255,.14), transparent 60%),
+                radial-gradient(900px 500px at 50% 100%, rgba(123,97,255,.14), transparent 60%),
+                var(--bg);
+    transition: opacity .25s ease;
+  }
+  .boot.off{ opacity:0; pointer-events:none; }
+  .bootCard{
+    width:min(420px, 88vw);
+    background:rgba(20,24,42,.75);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:18px;
+    text-align:center;
+    box-shadow: 0 24px 70px rgba(0,0,0,.45);
+  }
+  .bootTitle{ font-weight:900; font-size:16px; }
+  .bootSub{ margin-top:6px; font-size:12px; color:var(--muted); line-height:1.45; }
+  .spinner{
+    width:34px; height:34px; margin:14px auto 0;
+    border-radius:999px;
+    border:3px solid rgba(255,255,255,.18);
+    border-top-color: rgba(255,255,255,.8);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
+
+  /* 상단 스코어 */
   .top{ display:flex; gap:10px; margin-bottom:12px; }
   .box{
-    flex:1; background:var(--panel); padding:10px 14px;
-    border-radius:14px; text-align:center;
+    flex:1; background:var(--panel);
+    padding:10px 14px; border-radius:14px; text-align:center;
+    border:1px solid rgba(255,255,255,.06);
   }
   .box span{ display:block; font-size:12px; opacity:.75; }
   .box b{ font-size:20px; display:inline-block; }
@@ -47,11 +88,11 @@
     border-radius:18px;
     padding:14px;
   }
-
   .titleRow{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
   .title{ font-weight:900; font-size:16px; }
   .sub{ font-size:12px; color:var(--muted); }
 
+  /* 레일 */
   .railWrap{
     margin-top:12px;
     background:rgba(20,24,42,.55);
@@ -61,12 +102,10 @@
     overflow:hidden;
     position:relative;
   }
-
-  /* 아래로 갈수록 사라지는 그라데이션 마스크(지나간 문제 느낌) */
+  /* 아래로 갈수록 사라지는 그라데이션 */
   .railWrap::after{
     content:"";
-    position:absolute;
-    left:0; right:0; bottom:0;
+    position:absolute; left:0; right:0; bottom:0;
     height:42%;
     pointer-events:none;
     background: linear-gradient(to bottom,
@@ -76,7 +115,6 @@
       rgba(11,14,23,.9) 100%
     );
   }
-
   .slots{
     position:relative;
     display:flex;
@@ -84,7 +122,6 @@
     gap:var(--gap);
     will-change: transform;
   }
-
   .block{
     height:var(--slotH);
     display:flex;
@@ -100,15 +137,20 @@
     line-height:1.15;
     user-select:none;
     will-change: transform;
+    position:relative;
   }
 
-  /* 현재 문제(3번째 칸) 강조 */
+  .bName{ font-weight:900; font-size:15px; line-height:1.1; }
+  .block.selected .bName{ font-size:17px; }
+  .bGroup{ margin-top:2px; font-size:11px; font-weight:800; opacity:.72; letter-spacing:-.01em; }
+
+
+  /* 현재 문제: 3번째 칸 강조 */
   .block.selected{
     font-size:17px;
     transform: scale(1.06);
     border-color: rgba(255,255,255,.45);
     box-shadow: 0 0 0 2px rgba(255,255,255,.18) inset, 0 10px 26px rgba(0,0,0,.45);
-    position:relative;
   }
   .block.selected::after{
     content:"지금 맞추는 블럭";
@@ -120,11 +162,10 @@
     opacity:.8;
   }
 
-  /* 지나간 블럭(선택칸 아래) */
+  /* 지나간 문제(선택칸 아래) */
   .block.past{
     opacity:.42;
     filter:saturate(.75);
-    position:relative;
     background: rgba(17,22,42,.78);
   }
   .block.past::after{
@@ -138,7 +179,7 @@
     opacity:.60;
   }
 
-  /* 새로 들어온 블럭(맨 위) */
+  /* 새로 들어오는 맨 위 */
   .block.enter{
     opacity:0;
     transform: translateY(-10px);
@@ -148,31 +189,55 @@
     transform: translateY(0);
   }
 
-  .hint{ margin-top:10px; text-align:center; font-size:13px; color:var(--muted); min-height:18px; }
+  .hint{
+    margin-top:10px;
+    text-align:center;
+    font-size:13px;
+    color:var(--muted);
+    min-height:20px;
+  }
 
-  /* 액션 영역: START 자리 → 게임 시작 후 레전드/아이콘 */
+  /* 액션 영역 */
   .actions{ margin-top:12px; }
-
+  .startOnly button{
+    width:100%;
+    padding:12px;
+    border-radius:16px;
+    border:1px solid #2a3158;
+    background:#22284a;
+    color:#fff;
+    font-weight:900;
+    cursor:pointer;
+  }
   .buttons{ display:flex; gap:10px; }
   .btnCol{ flex:1; display:flex; flex-direction:column; gap:6px; }
   .btnNote{ text-align:center; font-size:11px; opacity:.75; }
-
-  button{
+  button.action{
     width:100%;
-    padding:12px;
+    padding:14px 12px;
     border-radius:16px;
     border:none;
     font-weight:900;
     cursor:pointer;
+    touch-action: manipulation;
   }
   .btnLegend{ background:var(--legend); color:#fff; }
   .btnIcon{ background:var(--icon); color:#001018; }
-  .start{ background:#22284a; color:#fff; border:1px solid #2a3158; }
   button:disabled{ opacity:.55; cursor:not-allowed; }
 
-  .startRow{ display:flex; gap:10px; margin-top:12px; }
-  .copy{ flex:1; background:#1a203d; color:#fff; border:1px solid #2a3158; }
+  .row{ margin-top:12px; display:flex; gap:10px; }
+  .ghost{
+    flex:1;
+    padding:12px;
+    border-radius:16px;
+    border:1px solid #2a3158;
+    background:#1a203d;
+    color:#fff;
+    font-weight:900;
+    cursor:pointer;
+  }
 
+  /* 결과 */
   .result{
     margin-top:12px;
     background:#0f1426;
@@ -196,9 +261,24 @@
   }
 
   .kbd{ margin-top:10px; text-align:center; font-size:12px; opacity:.65; }
+
+  @media (max-width:420px){
+    .app{ padding:14px; }
+    .title{ font-size:17px; }
+    .box b{ font-size:19px; }
+    button.action{ padding:16px 12px; }
+  }
 </style>
 </head>
 <body>
+
+<div class="boot" id="boot">
+  <div class="bootCard">
+    <div class="bootTitle">아이돌 레일 5블럭</div>
+    <div class="bootSub">더 커진 규모, 길어진 역사!<br/>새로워진 최애돌 리그 한번에 파악하기!</div>
+    <div class="spinner" aria-hidden="true"></div>
+  </div>
+</div>
 
 <div class="app">
   <div class="top">
@@ -214,32 +294,33 @@
     </div>
 
     <div class="railWrap">
-      <div class="sub" style="margin-bottom:8px;">더 커진 규모, 길어진 역사!<br/>새로워진 최애돌 리그 한번에 파악하기!</div>
+      <div class="sub" style="margin-bottom:8px;">
+        더 커진 규모, 길어진 역사!<br/>새로워진 최애돌 리그 한번에 파악하기!
+      </div>
       <div class="slots" id="slots"></div>
     </div>
 
     <div class="hint" id="hint"></div>
 
     <div class="actions">
-      <!-- 게임 시작 전: START만 -->
-      <div id="startOnly">
-        <button class="start" id="btnStart">START</button>
+      <div class="startOnly" id="startOnly">
+        <button id="btnStart">START</button>
       </div>
 
-      <!-- 게임 시작 후: 레전드/아이콘만 -->
       <div class="buttons" id="answerButtons" style="display:none;">
         <div class="btnCol">
-          <button class="btnLegend" id="btnLegend">🏆 레전드</button>
+          <button class="action btnLegend" id="btnLegend">🏆 레전드</button>
           <div class="btnNote">데뷔 7년 이상</div>
         </div>
         <div class="btnCol">
-          <button class="btnIcon" id="btnIcon">⭐ 아이콘</button>
+          <button class="action btnIcon" id="btnIcon">⭐ 아이콘</button>
           <div class="btnNote">데뷔 7년 이하</div>
         </div>
       </div>
 
-      <div class="startRow">
-        <button class="copy" id="btnCopy" disabled>공유문구 복사</button>
+      <div class="row">
+        <button class="ghost" id="btnCopy" disabled>공유문구 복사</button>
+        <button class="ghost" id="btnReset" disabled>리셋</button>
       </div>
     </div>
 
@@ -251,313 +332,499 @@
       <div class="shareBox" id="shareText"></div>
     </div>
 
-    <div class="kbd">PC: ← = 레전드 / → = 아이콘</div>
+    <div class="kbd">PC: ← = 레전드 / → = 아이콘 · 모바일: 버튼 터치</div>
   </div>
 </div>
 
 <script>
-const CURRENT_YEAR = 2026;
-const GAME_TIME = 60;
-const VISIBLE_COUNT = 5;
-const ACTIVE_INDEX = 2; // 0부터 시작(3번째 칸)
+  // ===== 설정 =====
+  const CURRENT_YEAR = 2026;
+  const GAME_TIME = 60;
+  const VISIBLE_COUNT = 5;
+  const ACTIVE_INDEX = 2; // 3번째 칸
 
-// 데이터(원하면 여기만 계속 추가하면 됨)
-const IDOLS = [
-  // 레전드 쪽(예시)
-  {name:"BTS", debut:2013},{name:"Red Velvet", debut:2014},{name:"TWICE", debut:2015},{name:"SEVENTEEN", debut:2015},
-  {name:"MAMAMOO", debut:2014},{name:"BLACKPINK", debut:2016},{name:"NCT", debut:2016},{name:"DAY6", debut:2015},
-  {name:"OH MY GIRL", debut:2015},{name:"ASTRO", debut:2016},{name:"WJSN", debut:2016},{name:"iKON", debut:2015},
-  {name:"PENTAGON", debut:2016},{name:"THE BOYZ", debut:2017},
+  // ===== 아이돌 데이터(Top100 확장) =====
+    const IDOLS = [
+    // 방탄소년단(BTS) / HYBE
+    { name:"RM", group:"방탄소년단", debut:2013 },
+    { name:"진", group:"방탄소년단", debut:2013 },
+    { name:"슈가", group:"방탄소년단", debut:2013 },
+    { name:"제이홉", group:"방탄소년단", debut:2013 },
+    { name:"지민", group:"방탄소년단", debut:2013 },
+    { name:"뷔", group:"방탄소년단", debut:2013 },
+    { name:"정국", group:"방탄소년단", debut:2013 },
 
-  // 아이콘 쪽(예시)
-  {name:"ITZY", debut:2019},{name:"TXT", debut:2019},{name:"aespa", debut:2020},{name:"ENHYPEN", debut:2020},
-  {name:"TREASURE", debut:2020},{name:"IVE", debut:2021},{name:"LE SSERAFIM", debut:2022},{name:"NewJeans", debut:2022},
-  {name:"NMIXX", debut:2022},{name:"ZEROBASEONE", debut:2023},{name:"RIIZE", debut:2023},{name:"BOYNEXTDOOR", debut:2023},
-  {name:"BABYMONSTER", debut:2024},{name:"ILLIT", debut:2024},{name:"TWS", debut:2024},{name:"KISS OF LIFE", debut:2023},
-  {name:"EVNNE", debut:2023},{name:"UNIS", debut:2024},{name:"RESCENE", debut:2024}
-];
+    { name:"연준", group:"투모로우바이투게더", debut:2019 },
+    { name:"수빈", group:"투모로우바이투게더", debut:2019 },
+    { name:"범규", group:"투모로우바이투게더", debut:2019 },
+    { name:"태현", group:"투모로우바이투게더", debut:2019 },
+    { name:"휴닝카이", group:"투모로우바이투게더", debut:2019 },
 
-// UI
-const $score = document.getElementById('score');
-const $combo = document.getElementById('combo');
-const $time  = document.getElementById('time');
-const $hint  = document.getElementById('hint');
-const $slots = document.getElementById('slots');
-const $comboBox = document.getElementById('comboBox');
+    { name:"니키", group:"엔하이픈", debut:2020 },
+    { name:"희승", group:"엔하이픈", debut:2020 },
+    { name:"제이", group:"엔하이픈", debut:2020 },
+    { name:"제이크", group:"엔하이픈", debut:2020 },
+    { name:"성훈", group:"엔하이픈", debut:2020 },
+    { name:"선우", group:"엔하이픈", debut:2020 },
+    { name:"정원", group:"엔하이픈", debut:2020 },
 
-const $btnLegend = document.getElementById('btnLegend');
-const $btnIcon   = document.getElementById('btnIcon');
-const $btnStart  = document.getElementById('btnStart');
-const $btnCopy   = document.getElementById('btnCopy');
+    // SM
+    { name:"태연", group:"소녀시대", debut:2007 },
 
-const $startOnly = document.getElementById('startOnly');
-const $answerButtons = document.getElementById('answerButtons');
+    { name:"백현", group:"EXO", debut:2012 },
+    { name:"카이", group:"EXO", debut:2012 },
+    { name:"디오", group:"EXO", debut:2012 },
+    { name:"세훈", group:"EXO", debut:2012 },
 
-const $result = document.getElementById('result');
-const $rtype = document.getElementById('rtype');
-const $rdesc = document.getElementById('rdesc');
-const $rmeta = document.getElementById('rmeta');
-const $shareText = document.getElementById('shareText');
+    { name:"태용", group:"NCT", debut:2016 },
+    { name:"마크", group:"NCT", debut:2016 },
+    { name:"재현", group:"NCT", debut:2016 },
+    { name:"해찬", group:"NCT", debut:2016 },
 
-// State
-let deck = [];
-let queue = [];         // 화면에 보이는 5개(위->아래)
-let blockEls = [];      // 고정 5개 DOM(FLIP)
-let score = 0;
-let combo = 0;
-let timeLeft = GAME_TIME;
-let timer = null;
-let playing = false;
-let locked = false;
+    { name:"윈터", group:"에스파", debut:2020 },
+    { name:"카리나", group:"에스파", debut:2020 },
+    { name:"닝닝", group:"에스파", debut:2020 },
+    { name:"지젤", group:"에스파", debut:2020 },
 
-// stats
-let total = 0;
-let correctCount = 0;
-let wrongCount = 0;
-let bestCombo = 0;
+    // YG
+    { name:"제니", group:"블랙핑크", debut:2016 },
+    { name:"리사", group:"블랙핑크", debut:2016 },
+    { name:"로제", group:"블랙핑크", debut:2016 },
+    { name:"지수", group:"블랙핑크", debut:2016 },
 
-function shuffle(arr){
-  const a = arr.slice();
-  for(let i=a.length-1; i>0; i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i], a[j]] = [a[j], a[i]];
+    { name:"지훈", group:"트레저", debut:2020 },
+    { name:"현석", group:"트레저", debut:2020 },
+    { name:"아사히", group:"트레저", debut:2020 },
+
+    // JYP
+    { name:"나연", group:"트와이스", debut:2015 },
+    { name:"정연", group:"트와이스", debut:2015 },
+    { name:"모모", group:"트와이스", debut:2015 },
+    { name:"사나", group:"트와이스", debut:2015 },
+    { name:"지효", group:"트와이스", debut:2015 },
+    { name:"미나", group:"트와이스", debut:2015 },
+    { name:"다현", group:"트와이스", debut:2015 },
+    { name:"채영", group:"트와이스", debut:2015 },
+    { name:"쯔위", group:"트와이스", debut:2015 },
+
+    { name:"방찬", group:"스트레이 키즈", debut:2018 },
+    { name:"리노", group:"스트레이 키즈", debut:2018 },
+    { name:"창빈", group:"스트레이 키즈", debut:2018 },
+    { name:"현진", group:"스트레이 키즈", debut:2018 },
+    { name:"한", group:"스트레이 키즈", debut:2018 },
+    { name:"필릭스", group:"스트레이 키즈", debut:2018 },
+    { name:"승민", group:"스트레이 키즈", debut:2018 },
+    { name:"아이엔", group:"스트레이 키즈", debut:2018 },
+
+    { name:"예지", group:"ITZY", debut:2019 },
+    { name:"류진", group:"ITZY", debut:2019 },
+    { name:"리아", group:"ITZY", debut:2019 },
+    { name:"채령", group:"ITZY", debut:2019 },
+    { name:"유나", group:"ITZY", debut:2019 },
+
+    { name:"설윤", group:"NMIXX", debut:2022 },
+    { name:"해원", group:"NMIXX", debut:2022 },
+    { name:"규진", group:"NMIXX", debut:2022 },
+
+    // 스타쉽 / IVE
+    { name:"장원영", group:"아이브", debut:2018 },
+    { name:"안유진", group:"아이브", debut:2018 },
+    { name:"레이", group:"아이브", debut:2021 },
+    { name:"리즈", group:"아이브", debut:2021 },
+    { name:"이서", group:"아이브", debut:2021 },
+
+    // ADOR / SOURCE
+    { name:"민지", group:"뉴진스", debut:2022 },
+    { name:"하니", group:"뉴진스", debut:2022 },
+    { name:"다니엘", group:"뉴진스", debut:2022 },
+    { name:"해린", group:"뉴진스", debut:2022 },
+    { name:"혜인", group:"뉴진스", debut:2022 },
+
+    { name:"사쿠라", group:"르세라핌", debut:2018 },
+    { name:"김채원", group:"르세라핌", debut:2018 },
+    { name:"허윤진", group:"르세라핌", debut:2022 },
+    { name:"카즈하", group:"르세라핌", debut:2022 },
+    { name:"은채", group:"르세라핌", debut:2022 },
+
+    // 5세대 / 신인
+    { name:"성한빈", group:"제로베이스원", debut:2023 },
+    { name:"장하오", group:"제로베이스원", debut:2023 },
+    { name:"리키", group:"제로베이스원", debut:2023 },
+
+    { name:"원빈", group:"라이즈", debut:2023 },
+    { name:"소희", group:"라이즈", debut:2023 },
+
+    { name:"민주", group:"아일릿", debut:2024 },
+    { name:"윤아", group:"아일릿", debut:2024 },
+
+    { name:"도훈", group:"TWS", debut:2024 },
+    { name:"신유", group:"TWS", debut:2024 },
+
+    // 그룹(그룹 카테고리용: 그룹명만 표시)
+    { name:"세븐틴", debut:2015 },
+    { name:"트와이스", debut:2015 },
+    { name:"블랙핑크", debut:2016 },
+    { name:"스트레이 키즈", debut:2018 },
+    { name:"ITZY", debut:2019 },
+    { name:"투모로우바이투게더", debut:2019 },
+    { name:"엔하이픈", debut:2020 },
+    { name:"트레저", debut:2020 },
+    { name:"아이브", debut:2021 },
+    { name:"뉴진스", debut:2022 },
+    { name:"르세라핌", debut:2022 },
+    { name:"라이즈", debut:2023 },
+    { name:"제로베이스원", debut:2023 },
+    { name:"보이넥스트도어", debut:2023 },
+    { name:"키스오브라이프", debut:2023 },
+    { name:"아일릿", debut:2024 },
+    { name:"TWS", debut:2024 },
+    { name:"베이비몬스터", debut:2024 }
+  ];
+
+  // ===== 유틸 =====
+  const $ = (id) => document.getElementById(id);
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
   }
-  return a;
-}
-function draw(){
-  if(deck.length === 0) deck = shuffle(IDOLS);
-  return deck.pop();
-}
-function isLegend(idol){ return (CURRENT_YEAR - idol.debut) >= 7; }
-
-function updateUI(){
-  $score.textContent = score;
-  $combo.textContent = combo;
-  $time.textContent  = timeLeft;
-}
-
-function comboFx(){
-  $combo.classList.remove('comboPulse');
-  void $combo.offsetWidth;
-  $combo.classList.add('comboPulse');
-  if(combo >= 5) $comboBox.classList.add('hot');
-  else $comboBox.classList.remove('hot');
-}
-
-function ensureBlocks(){
-  if(blockEls.length === VISIBLE_COUNT) return;
-  $slots.innerHTML = '';
-  blockEls = [];
-  for(let i=0; i<VISIBLE_COUNT; i++){
-    const el = document.createElement('div');
-    el.className = 'block';
-    $slots.appendChild(el);
-    blockEls.push(el);
-  }
-}
-function applyClasses(){
-  for(let i=0; i<VISIBLE_COUNT; i++){
-    const el = blockEls[i];
-    el.classList.toggle('selected', i === ACTIVE_INDEX);
-    el.classList.toggle('past', i > ACTIVE_INDEX);
-  }
-}
-
-function renderQueue({enterTop=false, flip=false} = {}){
-  ensureBlocks();
-
-  const before = flip ? blockEls.map(el => el.getBoundingClientRect()) : null;
-
-  for(let i=0; i<VISIBLE_COUNT; i++){
-    blockEls[i].textContent = queue[i]?.name ?? '';
-  }
-  applyClasses();
-
-  // 새로 들어온 맨 위 블럭(0번) 등장
-  if(enterTop){
-    const topEl = blockEls[0];
-    topEl.classList.add('enter');
-    requestAnimationFrame(() => topEl.classList.add('enterOn'));
-    setTimeout(() => {
-      topEl.classList.remove('enter');
-      topEl.classList.remove('enterOn');
-    }, 240);
-  }
-
-  if(!flip) return;
-
-  const after = blockEls.map(el => el.getBoundingClientRect());
-  for(let i=0; i<VISIBLE_COUNT; i++){
-    const dx = before[i].left - after[i].left;
-    const dy = before[i].top - after[i].top;
-    if(dx === 0 && dy === 0) continue;
-
-    const el = blockEls[i];
-    const isSel = el.classList.contains('selected');
-    const base = isSel ? ' scale(1.06)' : '';
-    el.animate(
-      [
-        { transform: `translate(${dx}px, ${dy}px)${base}` },
-        { transform: base.trim() || 'translate(0,0)' }
-      ],
-      { duration: 220, easing: 'cubic-bezier(.2,.8,.2,1)' }
-    );
-  }
-}
-
-function calcResultType(acc, bestCombo){
-  if (acc >= 90 && bestCombo >= 10) return { title:"📚 아이돌 연대기 마스터", desc:"연차 감각이 교과서급. 데뷔 연도 지문만 봐도 맞히는 타입!" };
-  if (acc >= 85) return { title:"🧠 세대 정리왕", desc:"레전드/아이콘 경계를 정확히 캐치해. 덕질 이력서가 빛난다." };
-  if (acc >= 70 && bestCombo >= 8) return { title:"⚡ 반사신경 덕후", desc:"빠르게 찍고 빠르게 맞힌다! 감각으로 게임을 뚫는 타입." };
-  if (acc >= 65) return { title:"🎧 체감연차 플레이어", desc:"정확하진 않아도 ‘느낌’이 있다. 최신 라인업에 강한 편!" };
-  if (acc >= 50) return { title:"🌀 혼종 세대 탐험가", desc:"세대 경계에서 흔들리는 중… 하지만 발전 가능성 100%." };
-  return { title:"🐣 뉴비 프로듀서", desc:"지금부터가 시작! 한 판 더 하면 체감 연차가 확 올라갈걸?" };
-}
-
-function showStartOnly(){
-  $startOnly.style.display = 'block';
-  $answerButtons.style.display = 'none';
-}
-function showAnswerButtons(){
-  $startOnly.style.display = 'none';
-  $answerButtons.style.display = 'flex';
-}
-
-function endGame(){
-  playing = false;
-  locked = false;
-  clearInterval(timer);
-  timer = null;
-
-  showStartOnly();
-  $btnStart.textContent = 'RESTART';
-
-  $hint.textContent = '게임 종료! 결과를 확인하세요 👇';
-
-  const acc = total ? Math.round((correctCount/total)*100) : 0;
-  const t = calcResultType(acc, bestCombo);
-
-  const share = [
-    '아이돌 레일 5블럭 결과',
-    `타입: ${t.title}`,
-    `점수: ${score}점 / 정확도: ${acc}%`,
-    `정답 ${correctCount} · 오답 ${wrongCount} · 최고콤보 ${bestCombo}`,
-    '',
-    '너도 해봐 👉 (여기에 링크 넣기)'
-  ].join('\n');
-
-  $rtype.textContent = t.title;
-  $rdesc.textContent = t.desc;
-  $rmeta.textContent = `정확도 ${acc}% · 정답 ${correctCount}/${total} · 최고콤보 ${bestCombo} · 점수 ${score}점`;
-  $shareText.textContent = share;
-
-  $result.style.display = 'block';
-  $btnCopy.disabled = false;
-}
-
-function answer(choiceLegend){
-  if(!playing || locked) return;
-
-  locked = true;
-
-  const idol = queue[ACTIVE_INDEX];
-  total += 1;
-
-  const correct = (choiceLegend === isLegend(idol));
-
-  if(correct){
-    correctCount += 1;
-    combo += 1;
-    bestCombo = Math.max(bestCombo, combo);
-    const add = 10 + (combo >= 5 ? 10 : 0);
-    score += add;
-
-    comboFx();
-    $hint.textContent = `정답! +${add} (${idol.name}, ${idol.debut})`;
-    if(combo === 5) $hint.textContent = `🔥 5 COMBO! +${add} (${idol.name}, ${idol.debut})`;
-    if(combo === 10) $hint.textContent = `⚡ 10 COMBO! +${add} (${idol.name}, ${idol.debut})`;
-  } else {
-    wrongCount += 1;
-    combo = 0;
-    comboFx();
-    score = Math.max(0, score - 5);
-    $hint.textContent = `오답! -5 (${idol.name}, ${idol.debut})`;
+  function isLegend(idol){
+    return (CURRENT_YEAR - idol.debut) >= 7; // 레전드: 7년 이상
   }
 
-  updateUI();
+  
 
-  // 컨베이어처럼: 한 칸 아래로 스르륵
-  $slots.style.transition = 'transform .22s ease-in-out';
-  $slots.style.transform = `translateY(${getComputedStyle(document.documentElement).getPropertyValue('--shift').trim() || '68px'})`;
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
+// ===== UI refs =====
+  const $boot = $("boot");
+  const $score = $("score");
+  const $combo = $("combo");
+  const $comboBox = $("comboBox");
+  const $time = $("time");
+  const $hint = $("hint");
+  const $slots = $("slots");
 
-  setTimeout(() => {
-    // 순간 리셋
-    $slots.style.transition = 'none';
-    $slots.style.transform = 'translateY(0)';
+  const $startOnly = $("startOnly");
+  const $answerButtons = $("answerButtons");
+  const $btnStart = $("btnStart");
+  const $btnLegend = $("btnLegend");
+  const $btnIcon = $("btnIcon");
+  const $btnCopy = $("btnCopy");
+  const $btnReset = $("btnReset");
 
-    // 회전: 맨 아래 제거 + 맨 위 추가
-    queue.pop();
-    queue.unshift(draw());
+  const $result = $("result");
+  const $rtype = $("rtype");
+  const $rdesc = $("rdesc");
+  const $rmeta = $("rmeta");
+  const $shareText = $("shareText");
 
-    renderQueue({enterTop:true, flip:true});
-    locked = false;
-  }, 230);
-}
+  // ===== State =====
+  let deck = [];
+  let queue = [];      // 화면 5개(위->아래)
+  let blockEls = [];   // 고정 5개 DOM (FLIP)
+  let score = 0, combo = 0, bestCombo = 0;
+  let timeLeft = GAME_TIME;
+  let timer = null;
+  let playing = false;
+  let locked = false;
 
-function startGame(){
-  // reset
-  score = 0; combo = 0; timeLeft = GAME_TIME;
-  total = 0; correctCount = 0; wrongCount = 0; bestCombo = 0;
-  deck = shuffle(IDOLS);
-  queue = [];
-  playing = true;
-  locked = false;
+  let total = 0, correctCount = 0, wrongCount = 0;
 
-  showAnswerButtons();
+  // ===== FX =====
+  function comboFx(){
+    $combo.classList.remove("comboPulse");
+    void $combo.offsetWidth;
+    $combo.classList.add("comboPulse");
 
-  $result.style.display = 'none';
-  $btnCopy.disabled = true;
+    if(combo >= 5) $comboBox.classList.add("hot");
+    else $comboBox.classList.remove("hot");
+  }
 
-  // 시작 시 5개 채우기
-  for(let i=0; i<VISIBLE_COUNT; i++) queue.push(draw());
-  renderQueue();
+  // ===== Render / FLIP =====
+  function ensureBlocks(){
+    if(blockEls.length === VISIBLE_COUNT) return;
+    $slots.innerHTML = "";
+    blockEls = [];
+    for(let i=0;i<VISIBLE_COUNT;i++){
+      const el = document.createElement("div");
+      el.className = "block";
+      $slots.appendChild(el);
+      blockEls.push(el);
+    }
+  }
 
-  $hint.textContent = '3번째(선택됨) 블럭이 레전드/아이콘인지 맞혀보세요!';
-  updateUI();
-  comboFx();
+  function applyClasses(){
+    for(let i=0;i<VISIBLE_COUNT;i++){
+      const el = blockEls[i];
+      el.classList.toggle("selected", i === ACTIVE_INDEX);
+      el.classList.toggle("past", i > ACTIVE_INDEX);
+    }
+  }
 
-  clearInterval(timer);
-  timer = setInterval(() => {
-    timeLeft -= 1;
+  function renderQueue({enterTop=false, flip=false} = {}){
+    ensureBlocks();
+
+    const before = flip ? blockEls.map(el => el.getBoundingClientRect()) : null;
+
+    for(let i=0;i<VISIBLE_COUNT;i++){
+      const item = queue[i];
+      const name = item?.name ?? "";
+      const group = item?.group ?? "";
+      blockEls[i].innerHTML = `<div class="bName">${escapeHtml(name)}</div>${group ? `<div class="bGroup">${escapeHtml(group)}</div>` : ""}`;
+    }
+    applyClasses();
+
+    if(enterTop){
+      const topEl = blockEls[0];
+      topEl.classList.add("enter");
+      requestAnimationFrame(() => topEl.classList.add("enterOn"));
+      setTimeout(() => topEl.classList.remove("enter","enterOn"), 240);
+    }
+
+    if(!flip) return;
+
+    const after = blockEls.map(el => el.getBoundingClientRect());
+    for(let i=0;i<VISIBLE_COUNT;i++){
+      const dx = before[i].left - after[i].left;
+      const dy = before[i].top - after[i].top;
+      if(dx === 0 && dy === 0) continue;
+
+      const el = blockEls[i];
+      const isSel = el.classList.contains("selected");
+      const base = isSel ? " scale(1.06)" : "";
+      el.animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px)${base}` },
+          { transform: base.trim() || "translate(0,0)" }
+        ],
+        { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }
+      );
+    }
+  }
+
+  // ===== 결과 타입 =====
+  function calcResultType(acc, bestCombo){
+    if (acc >= 90 && bestCombo >= 10) return { title:"📚 아이돌 연대기 마스터", desc:"연차 감각이 교과서급. 데뷔 연도 지문만 봐도 맞히는 타입!" };
+    if (acc >= 85) return { title:"🧠 세대 정리왕", desc:"레전드/아이콘 경계를 정확히 캐치해. 덕질 이력서가 빛난다." };
+    if (acc >= 70 && bestCombo >= 8) return { title:"⚡ 반사신경 덕후", desc:"빠르게 찍고 빠르게 맞힌다! 감각으로 게임을 뚫는 타입." };
+    if (acc >= 65) return { title:"🎧 체감연차 플레이어", desc:"정확하진 않아도 ‘느낌’이 있다. 최신 라인업에 강한 편!" };
+    if (acc >= 50) return { title:"🌀 혼종 세대 탐험가", desc:"세대 경계에서 흔들리는 중… 하지만 발전 가능성 100%." };
+    return { title:"🐣 뉴비 프로듀서", desc:"지금부터가 시작! 한 판 더 하면 체감 연차가 확 올라갈걸?" };
+  }
+
+  // ===== UI helpers =====
+  function updateUI(){
+    $score.textContent = score;
+    $combo.textContent = combo;
     $time.textContent = timeLeft;
-    if(timeLeft <= 0) endGame();
-  }, 1000);
-}
-
-// 이벤트
-$btnLegend.addEventListener('click', () => answer(true));
-$btnIcon.addEventListener('click', () => answer(false));
-$btnStart.addEventListener('click', startGame);
-
-$btnCopy.addEventListener('click', async () => {
-  const text = $shareText.textContent;
-  try{
-    await navigator.clipboard.writeText(text);
-    $hint.textContent = '공유 문구 복사 완료! ✅';
-  }catch(e){
-    $hint.textContent = '복사 실패 😭 공유문구를 드래그해서 복사해줘.';
   }
-});
 
-window.addEventListener('keydown', (e) => {
-  if(!playing) return;
-  if(e.key === 'ArrowLeft') answer(true);
-  if(e.key === 'ArrowRight') answer(false);
-});
+  function showStartOnly(){
+    $startOnly.style.display = "block";
+    $answerButtons.style.display = "none";
+    $btnReset.disabled = true;
+  }
+  function showAnswerButtons(){
+    $startOnly.style.display = "none";
+    $answerButtons.style.display = "flex";
+    $btnReset.disabled = false;
+  }
 
-// 초기 UI
-showStartOnly();
-updateUI();
+  function buildShareText(acc, resultType){
+    return [
+      "아이돌 레일 5블럭 결과",
+      `타입: ${resultType.title}`,
+      `점수: ${score}점 / 정확도: ${acc}%`,
+      `정답 ${correctCount} · 오답 ${wrongCount} · 최고콤보 ${bestCombo}`,
+      "",
+      "너도 해봐 👉 (여기에 링크 넣기)"
+    ].join("\n");
+  }
+
+  // ===== 게임 흐름 =====
+  function refillDeckIfNeeded(){
+    if(deck.length === 0) deck = shuffle(IDOLS);
+  }
+  function draw(){
+    refillDeckIfNeeded();
+    return deck.pop();
+  }
+
+  function startGame(){
+    score = 0; combo = 0; bestCombo = 0;
+    timeLeft = GAME_TIME;
+    total = 0; correctCount = 0; wrongCount = 0;
+
+    deck = shuffle(IDOLS);
+    queue = [];
+    playing = true;
+    locked = false;
+
+    $result.style.display = "none";
+    $btnCopy.disabled = true;
+    showAnswerButtons();
+
+    for(let i=0;i<VISIBLE_COUNT;i++) queue.push(draw());
+    renderQueue();
+    $hint.textContent = "3번째(선택됨) 블럭이 레전드/아이콘인지 맞혀보세요!";
+    updateUI();
+    comboFx();
+
+    clearInterval(timer);
+    timer = setInterval(() => {
+      timeLeft -= 1;
+      updateUI();
+      if(timeLeft <= 0) endGame();
+    }, 1000);
+  }
+
+  function endGame(){
+    playing = false;
+    locked = false;
+    clearInterval(timer);
+    timer = null;
+
+    showStartOnly();
+    $btnStart.textContent = "RESTART";
+
+    const acc = total ? Math.round((correctCount/total)*100) : 0;
+    const t = calcResultType(acc, bestCombo);
+
+    $rtype.textContent = t.title;
+    $rdesc.textContent = t.desc;
+    $rmeta.textContent = `정확도 ${acc}% · 정답 ${correctCount}/${total} · 최고콤보 ${bestCombo} · 점수 ${score}점`;
+
+    const share = buildShareText(acc, t);
+    $shareText.textContent = share;
+
+    $result.style.display = "block";
+    $btnCopy.disabled = false;
+
+    $hint.textContent = "게임 종료! 결과를 확인하세요 👇";
+  }
+
+  function answer(choiceLegend){
+    if(!playing || locked) return;
+    locked = true;
+
+    const idol = queue[ACTIVE_INDEX];
+    total += 1;
+
+    const correct = (choiceLegend === isLegend(idol));
+    if(correct){
+      correctCount += 1;
+      combo += 1;
+      bestCombo = Math.max(bestCombo, combo);
+
+      const add = 10 + (combo >= 5 ? 10 : 0);
+      score += add;
+
+      comboFx();
+      $hint.textContent = `정답! +${add} (${idol.name}, ${idol.debut})`;
+      if(combo === 5) $hint.textContent = `🔥 5 COMBO! +${add} (${idol.name}, ${idol.debut})`;
+      if(combo === 10) $hint.textContent = `⚡ 10 COMBO! +${add} (${idol.name}, ${idol.debut})`;
+    }else{
+      wrongCount += 1;
+      combo = 0;
+      comboFx();
+      score = Math.max(0, score - 5);
+      $hint.textContent = `오답! -5 (${idol.name}, ${idol.debut})`;
+    }
+
+    updateUI();
+
+    // 컨베이어: 한 칸 아래로 스르륵
+    $slots.style.transition = "transform .22s ease-in-out";
+    $slots.style.transform = `translateY(${getComputedStyle(document.documentElement).getPropertyValue("--shift").trim() || "68px"})`;
+
+    setTimeout(() => {
+      $slots.style.transition = "none";
+      $slots.style.transform = "translateY(0)";
+
+      queue.pop();
+      queue.unshift(draw());
+
+      renderQueue({enterTop:true, flip:true});
+      locked = false;
+    }, 230);
+  }
+
+  function hardReset(){
+    playing = false;
+    locked = false;
+    clearInterval(timer);
+    timer = null;
+
+    score = 0; combo = 0; bestCombo = 0;
+    timeLeft = GAME_TIME;
+    total = 0; correctCount = 0; wrongCount = 0;
+
+    deck = shuffle(IDOLS);
+    queue = [];
+    for(let i=0;i<VISIBLE_COUNT;i++) queue.push(draw());
+
+    renderQueue();
+    updateUI();
+    comboFx();
+
+    $hint.textContent = "START를 눌러 게임을 시작하세요!";
+    $result.style.display = "none";
+    $btnCopy.disabled = true;
+
+    showStartOnly();
+    $btnStart.textContent = "START";
+  }
+
+  // ===== 모바일 터치/연타 최적화 =====
+  function bindFastTap(btn, fn){
+    btn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      fn();
+    }, {passive:false});
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      fn();
+    });
+  }
+
+  // ===== 이벤트 =====
+  bindFastTap($btnLegend, () => answer(true));
+  bindFastTap($btnIcon,   () => answer(false));
+  bindFastTap($btnStart,  () => startGame());
+  bindFastTap($btnReset,  () => hardReset());
+
+  bindFastTap($btnCopy, async () => {
+    const text = $shareText.textContent || "";
+    try{
+      await navigator.clipboard.writeText(text);
+      $hint.textContent = "공유 문구 복사 완료! ✅";
+    }catch(e){
+      $hint.textContent = "복사 실패 😭 공유문구를 드래그해서 복사해줘.";
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if(!playing) return;
+    if(e.key === "ArrowLeft") answer(true);
+    if(e.key === "ArrowRight") answer(false);
+  });
+
+  // ===== 초기 로딩 =====
+  window.addEventListener("load", () => {
+    setTimeout(() => $boot.classList.add("off"), 380);
+    hardReset();
+  });
 </script>
 </body>
 </html>
